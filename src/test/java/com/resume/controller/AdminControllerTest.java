@@ -18,7 +18,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(AdminController.class)
-@Import(com.resume.config.LoginRateLimiter.class)
+@Import({com.resume.config.LoginRateLimiter.class, com.resume.config.TokenBlacklist.class})
 class AdminControllerTest {
 
     @Autowired
@@ -29,6 +29,7 @@ class AdminControllerTest {
 
     @MockBean
     private AdminService adminService;
+
 
     @Test
     void login_shouldReturnToken_whenCredentialsValid() throws Exception {

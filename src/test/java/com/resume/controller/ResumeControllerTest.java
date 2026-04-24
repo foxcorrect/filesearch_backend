@@ -1,7 +1,9 @@
 package com.resume.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.resume.config.TokenBlacklist;
 import com.resume.config.WebMvcConfig;
+import com.resume.dto.PageResult;
 import com.resume.dto.ResumeUpdateRequest;
 import com.resume.entity.Resume;
 import com.resume.interceptor.AuthInterceptor;
@@ -24,15 +26,18 @@ import java.util.Date;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(ResumeController.class)
-@Import({AuthInterceptor.class, WebMvcConfig.class})
+@Import({AuthInterceptor.class, WebMvcConfig.class, TokenBlacklist.class})
 class ResumeControllerTest {
 
     private static final String JWT_SECRET = "TestJwtSecretKeyForUnitTestingMustBeAtLeast256BitsLong!!";
@@ -59,7 +64,7 @@ class ResumeControllerTest {
     }
 
     @Test
-    void list_shouldReturnAllResumes() throws Exception {
+    void list_shouldReturnPaginatedResumes() throws Exception {
         Resume r1 = new Resume();
         r1.setId(1L);
         r1.setUsername("张三");
@@ -72,15 +77,18 @@ class ResumeControllerTest {
         r2.setWorkYears(8);
         r2.setAge(32);
 
-        when(resumeService.findAll()).thenReturn(List.of(r1, r2));
+        PageResult<Resume> pageResult = new PageResult<>(List.of(r1, r2), 2, 1, 20);
+        when(resumeService.findAll(anyInt(), anyInt())).thenReturn(pageResult);
 
         mockMvc.perform(get("/api/resumes")
                         .header("Authorization", "Bearer " + validToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
-                .andExpect(jsonPath("$.data.length()").value(2))
-                .andExpect(jsonPath("$.data[0].username").value("张三"))
-                .andExpect(jsonPath("$.data[1].username").value("李四"));
+                .andExpect(jsonPath("$.data.items.length()").value(2))
+                .andExpect(jsonPath("$.data.total").value(2))
+                .andExpect(jsonPath("$.data.page").value(1))
+                .andExpect(jsonPath("$.data.items[0].username").value("张三"))
+                .andExpect(jsonPath("$.data.items[1].username").value("李四"));
     }
 
     @Test
@@ -156,6 +164,26 @@ class ResumeControllerTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value(400));
+    }
+
+    @Test
+    void delete_shouldSucceed() throws Exception {
+        mockMvc.perform(delete("/api/resumes/1")
+                        .header("Authorization", "Bearer " + validToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200));
+    }
+
+    @Test
+    void delete_shouldReturn400_whenNotFound() throws Exception {
+        doThrow(new com.resume.exception.BusinessException(400, "简历不存在"))
+                .when(resumeService).delete(999L);
+
+        mockMvc.perform(delete("/api/resumes/999")
+                        .header("Authorization", "Bearer " + validToken))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(400))
+                .andExpect(jsonPath("$.message").value("简历不存在"));
     }
 
     @Test

@@ -8,7 +8,10 @@ import java.util.List;
 
 @Mapper
 public interface ResumeMapper {
-    List<Resume> findAll();
+    List<Resume> findAll(@Param("offset") int offset, @Param("limit") int limit);
+    long countAll();
     Resume findById(@Param("id") Long id);
+    int insert(Resume resume);
     int update(Resume resume);
+    int deleteById(@Param("id") Long id);
 }

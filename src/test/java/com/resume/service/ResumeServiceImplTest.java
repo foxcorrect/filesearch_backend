@@ -1,41 +1,53 @@
 package com.resume.service;
 
+import com.resume.dto.PageResult;
 import com.resume.dto.ResumeUpdateRequest;
 import com.resume.entity.Resume;
+import com.resume.exception.BusinessException;
 import com.resume.mapper.ResumeMapper;
 import com.resume.service.impl.ResumeServiceImpl;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-@ExtendWith(MockitoExtension.class)
+@ExtendWith(org.mockito.junit.jupiter.MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class ResumeServiceImplTest {
 
     @Mock
     private ResumeMapper resumeMapper;
 
-    @InjectMocks
     private ResumeServiceImpl resumeService;
 
+    @BeforeEach
+    void setUp() {
+        resumeService = new ResumeServiceImpl(resumeMapper, null);
+    }
+
     @Test
-    void findAll_shouldReturnAllResumes() {
+    void findAll_shouldReturnPaginatedResumes() {
         List<Resume> expected = List.of(new Resume(), new Resume());
-        when(resumeMapper.findAll()).thenReturn(expected);
+        when(resumeMapper.findAll(anyInt(), anyInt())).thenReturn(expected);
+        when(resumeMapper.countAll()).thenReturn(10L);
 
-        List<Resume> result = resumeService.findAll();
-
-        assertEquals(2, result.size());
-        verify(resumeMapper).findAll();
+        PageResult<Resume> result = resumeService.findAll(1, 20);
+        assertEquals(2, result.getItems().size());
+        assertEquals(10, result.getTotal());
+        assertEquals(1, result.getPage());
+        assertEquals(20, result.getSize());
+        verify(resumeMapper).findAll(0, 20);
     }
 
     @Test
@@ -54,7 +66,7 @@ class ResumeServiceImplTest {
     void findById_shouldThrow_whenNotFound() {
         when(resumeMapper.findById(anyLong())).thenReturn(null);
 
-        RuntimeException e = assertThrows(RuntimeException.class,
+        BusinessException e = assertThrows(BusinessException.class,
                 () -> resumeService.findById(999L));
         assertEquals("简历不存在", e.getMessage());
     }
@@ -67,14 +79,7 @@ class ResumeServiceImplTest {
         existing.setWorkYears(1);
         existing.setAge(20);
 
-        Resume updated = new Resume();
-        updated.setId(1L);
-        updated.setUsername("new_name");
-        updated.setWorkYears(5);
-        updated.setAge(30);
-        updated.setResumeContent("new content");
-
-        when(resumeMapper.findById(1L)).thenReturn(existing, updated);
+        when(resumeMapper.findById(1L)).thenReturn(existing);
 
         ResumeUpdateRequest request = new ResumeUpdateRequest();
         request.setUsername("new_name");
@@ -96,8 +101,28 @@ class ResumeServiceImplTest {
         when(resumeMapper.findById(anyLong())).thenReturn(null);
 
         ResumeUpdateRequest request = new ResumeUpdateRequest();
-        RuntimeException e = assertThrows(RuntimeException.class,
+        BusinessException e = assertThrows(BusinessException.class,
                 () -> resumeService.update(999L, request));
+        assertEquals("简历不存在", e.getMessage());
+    }
+
+    @Test
+    void delete_shouldSucceed_whenResumeExists() {
+        Resume existing = new Resume();
+        existing.setId(1L);
+        when(resumeMapper.findById(1L)).thenReturn(existing);
+
+        resumeService.delete(1L);
+
+        verify(resumeMapper).deleteById(1L);
+    }
+
+    @Test
+    void delete_shouldThrow_whenResumeNotFound() {
+        when(resumeMapper.findById(anyLong())).thenReturn(null);
+
+        BusinessException e = assertThrows(BusinessException.class,
+                () -> resumeService.delete(999L));
         assertEquals("简历不存在", e.getMessage());
     }
 }

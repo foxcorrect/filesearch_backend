@@ -20,6 +20,9 @@ public class ResumeUpdateRequest {
     @NotNull(message = "年龄不能为空")
     private Integer age;
 
+    @Schema(description = "性别", example = "男")
+    private String gender;
+
     @Schema(description = "简历内容", example = "5年后端开发经验，精通Java、Spring Boot、MyBatis。")
     @Size(max = 65535, message = "简历内容不能超过65535个字符")
     private String resumeContent;
@@ -30,6 +33,8 @@ public class ResumeUpdateRequest {
     public void setWorkYears(Integer workYears) { this.workYears = workYears; }
     public Integer getAge() { return age; }
     public void setAge(Integer age) { this.age = age; }
+    public String getGender() { return gender; }
+    public void setGender(String gender) { this.gender = gender; }
     public String getResumeContent() { return resumeContent; }
     public void setResumeContent(String resumeContent) { this.resumeContent = resumeContent; }
 }

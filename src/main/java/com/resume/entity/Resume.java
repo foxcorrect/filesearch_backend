@@ -18,6 +18,9 @@ public class Resume {
     @Schema(description = "年龄", example = "28")
     private Integer age;
 
+    @Schema(description = "性别", example = "男")
+    private String gender;
+
     @Schema(description = "简历内容")
     private String resumeContent;
 
@@ -35,6 +38,8 @@ public class Resume {
     public void setWorkYears(Integer workYears) { this.workYears = workYears; }
     public Integer getAge() { return age; }
     public void setAge(Integer age) { this.age = age; }
+    public String getGender() { return gender; }
+    public void setGender(String gender) { this.gender = gender; }
     public String getResumeContent() { return resumeContent; }
     public void setResumeContent(String resumeContent) { this.resumeContent = resumeContent; }
     public LocalDateTime getCreatedAt() { return createdAt; }
