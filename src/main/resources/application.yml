@@ -1,0 +1,20 @@
+server:
+  port: 8080
+
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/resume_db?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&useSSL=false
+    username: root
+    password: 123456
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+mybatis:
+  mapper-locations: classpath:mapper/*.xml
+  type-aliases-package: com.resume.entity
+  configuration:
+    map-underscore-to-camel-case: true
+
+jwt:
+  # 生产环境务必通过环境变量 JWT_SECRET 设置，不要使用默认值
+  secret: ${JWT_SECRET:ResumeBackendJwtSecretKey2024MustBeAtLeast256BitsLongForHS256!!}
+  expiration: ${JWT_EXPIRATION:86400000}

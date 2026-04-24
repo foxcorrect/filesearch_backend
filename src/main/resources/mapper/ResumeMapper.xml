@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.resume.mapper.ResumeMapper">
+
+    <resultMap id="BaseResultMap" type="com.resume.entity.Resume">
+        <id column="id" property="id" />
+        <result column="username" property="username" />
+        <result column="work_years" property="workYears" />
+        <result column="age" property="age" />
+        <result column="resume_content" property="resumeContent" />
+        <result column="created_at" property="createdAt" />
+        <result column="updated_at" property="updatedAt" />
+    </resultMap>
+
+    <select id="findAll" resultMap="BaseResultMap">
+        SELECT id, username, work_years, age, resume_content, created_at, updated_at
+        FROM resume
+        ORDER BY updated_at DESC
+    </select>
+
+    <select id="findById" resultMap="BaseResultMap">
+        SELECT id, username, work_years, age, resume_content, created_at, updated_at
+        FROM resume
+        WHERE id = #{id}
+    </select>
+
+    <update id="update" parameterType="com.resume.entity.Resume">
+        UPDATE resume
+        SET username = #{username},
+            work_years = #{workYears},
+            age = #{age},
+            resume_content = #{resumeContent},
+            updated_at = #{updatedAt}
+        WHERE id = #{id}
+    </update>
+
+</mapper>

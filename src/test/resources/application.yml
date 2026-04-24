@@ -1,0 +1,3 @@
+jwt:
+  secret: TestJwtSecretKeyForUnitTestingMustBeAtLeast256BitsLong!!
+  expiration: 86400000
