@@ -10,8 +10,12 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 @Tag(name = "简历管理", description = "简历的查看与编辑接口（需登录）")
 @SecurityRequirement(name = "BearerAuth")
@@ -63,6 +67,40 @@ public class ResumeController {
     public ApiResponse<Resume> update(@PathVariable Long id,
                                       @Valid @RequestBody ResumeUpdateRequest request) {
         return ApiResponse.success(resumeService.update(id, request));
+    }
+
+    @Operation(summary = "获取PDF文本内容", description = "根据ID从原始PDF中提取文本内容，用于富文本编辑器")
+    @GetMapping("/{id}/pdf")
+    public ApiResponse<String> getPdfContent(@PathVariable Long id) {
+        return ApiResponse.success(resumeService.getPdfContent(id));
+    }
+
+    @Operation(summary = "下载原始PDF", description = "根据ID下载原始PDF文件")
+    @GetMapping("/{id}/pdf/download")
+    public ResponseEntity<byte[]> downloadPdf(@PathVariable Long id) {
+        byte[] fileData = resumeService.getPdfFileData(id);
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_PDF);
+        headers.setContentDisposition(ContentDisposition.inline()
+                .filename("resume.pdf")
+                .build());
+        return ResponseEntity.ok().headers(headers).body(fileData);
+    }
+
+    @Operation(summary = "更新PDF文件", description = "替换指定简历的原始PDF文件，同时重新提取文本内容")
+    @PutMapping(value = "/{id}/pdf", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ApiResponse<Void> updatePdf(@PathVariable Long id,
+                                        @RequestParam("file") MultipartFile file) {
+        String originalFilename = file.getOriginalFilename();
+        if (originalFilename == null || !originalFilename.toLowerCase().endsWith(".pdf")) {
+            return ApiResponse.error(400, "仅支持PDF格式的文件");
+        }
+        String contentType = file.getContentType();
+        if (contentType == null || !contentType.equalsIgnoreCase("application/pdf")) {
+            return ApiResponse.error(400, "仅支持PDF格式的文件");
+        }
+        resumeService.updatePdfFile(id, file);
+        return ApiResponse.success();
     }
 
     @Operation(summary = "删除简历", description = "根据ID删除简历")

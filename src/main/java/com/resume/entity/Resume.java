@@ -1,5 +1,6 @@
 package com.resume.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.LocalDateTime;
@@ -24,6 +25,10 @@ public class Resume {
     @Schema(description = "简历内容")
     private String resumeContent;
 
+    @JsonIgnore
+    @Schema(description = "原始PDF文件二进制数据")
+    private byte[] fileData;
+
     @Schema(description = "创建时间")
     private LocalDateTime createdAt;
 
@@ -42,6 +47,8 @@ public class Resume {
     public void setGender(String gender) { this.gender = gender; }
     public String getResumeContent() { return resumeContent; }
     public void setResumeContent(String resumeContent) { this.resumeContent = resumeContent; }
+    public byte[] getFileData() { return fileData; }
+    public void setFileData(byte[] fileData) { this.fileData = fileData; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }

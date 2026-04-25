@@ -13,6 +13,10 @@
         <result column="updated_at" property="updatedAt" />
     </resultMap>
 
+    <resultMap id="FileDataResultMap" type="com.resume.entity.Resume" extends="BaseResultMap">
+        <result column="file_data" property="fileData" />
+    </resultMap>
+
     <select id="findAll" resultMap="BaseResultMap">
         SELECT id, username, work_years, age, gender, resume_content, created_at, updated_at
         FROM resume
@@ -30,6 +34,10 @@
         WHERE id = #{id}
     </select>
 
+    <select id="findFileDataById" resultMap="FileDataResultMap">
+        SELECT id, file_data FROM resume WHERE id = #{id}
+    </select>
+
     <update id="update" parameterType="com.resume.entity.Resume">
         UPDATE resume
         SET username = #{username},
@@ -41,9 +49,13 @@
         WHERE id = #{id}
     </update>
 
+    <update id="updateFileData">
+        UPDATE resume SET file_data = #{fileData}, updated_at = NOW() WHERE id = #{id}
+    </update>
+
     <insert id="insert" parameterType="com.resume.entity.Resume" useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO resume (username, work_years, age, gender, resume_content, created_at, updated_at)
-        VALUES (#{username}, #{workYears}, #{age}, #{gender}, #{resumeContent}, #{createdAt}, #{updatedAt})
+        INSERT INTO resume (username, work_years, age, gender, resume_content, file_data, created_at, updated_at)
+        VALUES (#{username}, #{workYears}, #{age}, #{gender}, #{resumeContent}, #{fileData}, #{createdAt}, #{updatedAt})
     </insert>
 
     <delete id="deleteById">

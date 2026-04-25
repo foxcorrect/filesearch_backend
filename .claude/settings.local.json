@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mvn compile *)",
+      "Bash(taskkill //F //PID 22036)",
+      "Bash(mvn spring-boot:run)",
+      "Bash(docker exec mysql *)",
+      "Bash(curl -s http://localhost:8080/v3/api-docs)",
+      "Bash(mvn spring-boot:run -q)",
+      "Bash(netstat -ano)",
+      "Bash(taskkill /F /PID 16952)",
+      "Bash(taskkill *)",
+      "Bash(curl *)"
+    ]
+  }
+}

@@ -11,5 +11,8 @@ public interface ResumeService {
     Resume create(Resume resume);
     Resume update(Long id, ResumeUpdateRequest request);
     Resume uploadPdf(MultipartFile file, String username, Integer age, String gender, Integer workYears);
+    void updatePdfFile(Long id, MultipartFile file);
+    byte[] getPdfFileData(Long id);
+    String getPdfContent(Long id);
     void delete(Long id);
 }
