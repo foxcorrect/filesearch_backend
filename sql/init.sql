@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS resume (
     work_years INT NOT NULL DEFAULT 0 COMMENT '工作年限',
     age INT NOT NULL DEFAULT 0 COMMENT '年龄',
     gender VARCHAR(10) NOT NULL DEFAULT '' COMMENT '性别',
-    resume_content TEXT COMMENT '简历内容（纯文本）',
+    resume_content LONGTEXT COMMENT '简历内容（纯文本，支持base64图片）',
     file_data MEDIUMBLOB COMMENT '原始PDF文件',
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP

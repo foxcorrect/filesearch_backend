@@ -21,7 +21,8 @@ import java.util.List;
 public class ResumeServiceImpl implements ResumeService {
 
     private static final Safelist HTML_SAFELIST = Safelist.relaxed()
-            .addAttributes(":all", "class");
+            .addAttributes(":all", "class", "style")
+            .addProtocols("img", "src", "data");
 
     private final ResumeMapper resumeMapper;
     private final PdfExtractionService pdfExtractionService;
@@ -76,8 +77,7 @@ public class ResumeServiceImpl implements ResumeService {
 
         resumeMapper.update(existing);
 
-        // Write file_data separately to avoid NULLing it when content is unchanged.
-        // The general update SQL no longer includes file_data.
+        // Regenerate PDF from the updated editor content
         if (safeContent != null && !safeContent.isBlank()) {
             byte[] pdfData = pdfExtractionService.generateStyledPdf(safeContent);
             resumeMapper.updateFileData(id, pdfData);
@@ -128,7 +128,7 @@ public class ResumeServiceImpl implements ResumeService {
 
     /**
      * Sanitize HTML content to remove XSS vectors (script tags, event handlers, etc.)
-     * while preserving Quill editor formatting tags and class attributes.
+     * while preserving rich text editor formatting tags, class, and style attributes.
      */
     private String sanitizeHtml(String content) {
         if (content == null || content.isEmpty()) {

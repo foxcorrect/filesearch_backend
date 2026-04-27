@@ -29,11 +29,18 @@ class ResumeServiceImplTest {
     @Mock
     private ResumeMapper resumeMapper;
 
+    private PdfExtractionService pdfExtractionService;
     private ResumeServiceImpl resumeService;
 
     @BeforeEach
     void setUp() {
-        resumeService = new ResumeServiceImpl(resumeMapper, null);
+        pdfExtractionService = new PdfExtractionService() {
+            @Override
+            public byte[] generateStyledPdf(String htmlContent) {
+                return new byte[0];
+            }
+        };
+        resumeService = new ResumeServiceImpl(resumeMapper, pdfExtractionService);
     }
 
     @Test

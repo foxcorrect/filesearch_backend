@@ -23,8 +23,8 @@ public class ResumeUpdateRequest {
     @Schema(description = "性别", example = "男")
     private String gender;
 
-    @Schema(description = "简历内容", example = "5年后端开发经验，精通Java、Spring Boot、MyBatis。")
-    @Size(max = 65535, message = "简历内容不能超过65535个字符")
+    @Schema(description = "简历内容（支持base64图片嵌入）", example = "5年后端开发经验，精通Java、Spring Boot、MyBatis。")
+    @Size(max = 10_485_760, message = "简历内容不能超过10MB")
     private String resumeContent;
 
     public String getUsername() { return username; }

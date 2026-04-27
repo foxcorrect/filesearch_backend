@@ -10,7 +10,18 @@
       "Bash(netstat -ano)",
       "Bash(taskkill /F /PID 16952)",
       "Bash(taskkill *)",
-      "Bash(curl *)"
+      "Bash(curl *)",
+      "Bash(npm install *)",
+      "Bash(npm uninstall *)",
+      "Bash(npx vue-cli-service *)",
+      "Bash(npm run *)",
+      "Bash(timeout 30)",
+      "Bash(cd /tmp)",
+      "Bash(javac \"C:\\\\Users\\\\Administrator\\\\AppData\\\\Local\\\\Temp\\\\FindKangxi.java\" -d .)",
+      "Bash(java -cp \".\" FindKangxi \"/tmp/resume6.json\")",
+      "Bash(javac \"C:\\\\Users\\\\Administrator\\\\AppData\\\\Local\\\\Temp\\\\MapKangxi.java\" -d \"C:\\\\Users\\\\Administrator\\\\AppData\\\\Local\\\\Temp\")",
+      "Bash(java -cp \"C:\\\\Users\\\\Administrator\\\\AppData\\\\Local\\\\Temp\" MapKangxi \"E:\\\\code\\\\filesearch\\\\resume-backend\\\\target\\\\classes\\\\..\\\\..\\\\..\\\\..\\\\..\\\\..\\\\tmp\\\\resumes_all.json\")",
+      "Bash(mvn exec:java -Dexec.mainClass=\"com.resume.PdfYTest\" -Dexec.args=\"C:\\\\Users\\\\Administrator\\\\AppData\\\\Local\\\\Temp\\\\test_simple.pdf\" -q)"
     ]
   }
 }
