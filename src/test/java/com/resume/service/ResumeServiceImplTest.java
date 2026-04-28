@@ -10,6 +10,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 
@@ -22,25 +23,21 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-@ExtendWith(org.mockito.junit.jupiter.MockitoExtension.class)
+@ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
 class ResumeServiceImplTest {
 
     @Mock
     private ResumeMapper resumeMapper;
 
-    private PdfExtractionService pdfExtractionService;
+    @Mock
+    private Pdf2HtmlService pdf2HtmlService;
+
     private ResumeServiceImpl resumeService;
 
     @BeforeEach
     void setUp() {
-        pdfExtractionService = new PdfExtractionService() {
-            @Override
-            public byte[] generateStyledPdf(String htmlContent) {
-                return new byte[0];
-            }
-        };
-        resumeService = new ResumeServiceImpl(resumeMapper, pdfExtractionService);
+        resumeService = new ResumeServiceImpl(resumeMapper, pdf2HtmlService);
     }
 
     @Test

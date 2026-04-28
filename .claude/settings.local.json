@@ -21,7 +21,9 @@
       "Bash(java -cp \".\" FindKangxi \"/tmp/resume6.json\")",
       "Bash(javac \"C:\\\\Users\\\\Administrator\\\\AppData\\\\Local\\\\Temp\\\\MapKangxi.java\" -d \"C:\\\\Users\\\\Administrator\\\\AppData\\\\Local\\\\Temp\")",
       "Bash(java -cp \"C:\\\\Users\\\\Administrator\\\\AppData\\\\Local\\\\Temp\" MapKangxi \"E:\\\\code\\\\filesearch\\\\resume-backend\\\\target\\\\classes\\\\..\\\\..\\\\..\\\\..\\\\..\\\\..\\\\tmp\\\\resumes_all.json\")",
-      "Bash(mvn exec:java -Dexec.mainClass=\"com.resume.PdfYTest\" -Dexec.args=\"C:\\\\Users\\\\Administrator\\\\AppData\\\\Local\\\\Temp\\\\test_simple.pdf\" -q)"
+      "Bash(mvn exec:java -Dexec.mainClass=\"com.resume.PdfYTest\" -Dexec.args=\"C:\\\\Users\\\\Administrator\\\\AppData\\\\Local\\\\Temp\\\\test_simple.pdf\" -q)",
+      "WebSearch",
+      "Bash(mvn test *)"
     ]
   }
 }
