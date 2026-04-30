@@ -13,10 +13,12 @@ import org.jsoup.nodes.Element;
 import org.jsoup.safety.Safelist;
 import org.jsoup.select.Elements;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -63,8 +65,9 @@ public class ResumeServiceImpl implements ResumeService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public Resume update(Long id, ResumeUpdateRequest request) {
-        Resume existing = resumeMapper.findById(id);
+        Resume existing = resumeMapper.findByIdForUpdate(id);
         if (existing == null) {
             throw new BusinessException(400, "简历不存在");
         }
@@ -84,12 +87,20 @@ public class ResumeServiceImpl implements ResumeService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public Resume uploadPdf(MultipartFile file, String username, Integer age, String gender, Integer workYears) {
+        if (file.isEmpty()) {
+            throw new BusinessException(400, "上传文件不能为空");
+        }
+        if (file.getSize() > 10 * 1024 * 1024) {
+            throw new BusinessException(400, "文件大小不能超过10MB");
+        }
+
         byte[] fileData;
-        try {
-            fileData = file.getBytes();
+        try (InputStream is = file.getInputStream()) {
+            fileData = is.readAllBytes();
         } catch (IOException e) {
-            throw new BusinessException(400, "读取PDF文件失败: " + e.getMessage());
+            throw new BusinessException(500, "读取PDF文件失败: " + e.getMessage());
         }
         String html = pdf2HtmlService.convert(fileData);
         Resume resume = new Resume();

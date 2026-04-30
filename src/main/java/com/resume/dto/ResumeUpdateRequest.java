@@ -1,6 +1,8 @@
 package com.resume.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -14,10 +16,14 @@ public class ResumeUpdateRequest {
 
     @Schema(description = "工作年限", example = "5")
     @NotNull(message = "工作年限不能为空")
+    @Min(value = 0, message = "工作年限不能小于0")
+    @Max(value = 70, message = "工作年限不能超过70")
     private Integer workYears;
 
     @Schema(description = "年龄", example = "28")
     @NotNull(message = "年龄不能为空")
+    @Min(value = 0, message = "年龄不能小于0")
+    @Max(value = 150, message = "年龄不能超过150")
     private Integer age;
 
     @Schema(description = "性别", example = "男")

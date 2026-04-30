@@ -10,13 +10,17 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import org.springframework.http.MediaType;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "简历管理", description = "简历的查看与编辑接口（需登录）")
 @SecurityRequirement(name = "BearerAuth")
 @RestController
 @RequestMapping("/api/resumes")
+@Validated
 public class ResumeController {
 
     private final ResumeService resumeService;
@@ -44,11 +48,8 @@ public class ResumeController {
     @Operation(summary = "获取所有简历（分页）", description = "分页获取已上传的简历列表")
     @GetMapping
     public ApiResponse<PageResult<Resume>> list(
-            @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "20") int size) {
-        if (page < 1) page = 1;
-        if (size < 1) size = 20;
-        if (size > 100) size = 100;
+            @RequestParam(defaultValue = "1") @Min(1) int page,
+            @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size) {
         return ApiResponse.success(resumeService.findAll(page, size));
     }
 

@@ -34,8 +34,11 @@
         WHERE id = #{id}
     </select>
 
-    <select id="findFileDataById" resultMap="FileDataResultMap">
-        SELECT id, file_data FROM resume WHERE id = #{id}
+    <select id="findByIdForUpdate" resultMap="BaseResultMap">
+        SELECT id, username, work_years, age, gender, resume_content, created_at, updated_at
+        FROM resume
+        WHERE id = #{id}
+        FOR UPDATE
     </select>
 
     <update id="update" parameterType="com.resume.entity.Resume">

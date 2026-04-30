@@ -25,5 +25,30 @@
       "WebSearch",
       "Bash(mvn test *)"
     ]
+  },
+    "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "branch=\"${GIT_PULL_BRANCH:-main}\"; git fetch origin \"$branch\" 2>/dev/null; git pull origin \"$branch\" --ff-only 2>/dev/null; true",
+            "timeout": 30,
+            "statusMessage": "Pulling latest from origin..."
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "git diff --quiet && git diff --cached --quiet || { git add -A && git commit -m \"chore: auto-commit $(date '+%Y-%m-%d %H:%M')\" 2>/dev/null; }; unpushed=$(git rev-list --count @{u}..HEAD 2>/dev/null || echo 0); if [ \"$unpushed\" -gt 0 ]; then branch=$(git branch --show-current); echo \"{\\\"hookSpecificOutput\\\":{\\\"hookEventName\\\":\\\"Stop\\\",\\\"additionalContext\\\":\\\"There are $unpushed unpushed commits on branch $branch. Ask the user if they want to push and to which branch.\\\"}}\"; fi; true",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
   }
 }

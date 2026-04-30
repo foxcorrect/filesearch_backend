@@ -13,6 +13,7 @@ import org.apache.pdfbox.text.PDFTextStripper;
 import org.apache.pdfbox.text.TextPosition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import com.lowagie.text.pdf.BaseFont;
 import org.xhtmlrenderer.pdf.ITextFontResolver;
@@ -20,7 +21,6 @@ import org.xhtmlrenderer.pdf.ITextRenderer;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -37,6 +37,12 @@ import java.util.regex.Pattern;
 public class PdfExtractionService {
 
     private static final Logger log = LoggerFactory.getLogger(PdfExtractionService.class);
+
+    private final String fontsDir;
+
+    public PdfExtractionService(@Value("${pdf.fonts-dir:C:/Windows/Fonts}") String fontsDir) {
+        this.fontsDir = fontsDir;
+    }
 
     // Pattern to match <img src="data:image/...;base64,...">
     private static final Pattern DATA_URI_PATTERN =
@@ -135,23 +141,23 @@ public class PdfExtractionService {
         ITextFontResolver resolver = (ITextFontResolver) renderer.getFontResolver();
 
         // SimHei (黑体) — register as both specific family and generic serif/sans-serif
-        registerFont(resolver, "C:/Windows/Fonts/simhei.ttf", "SimHei");
-        registerFont(resolver, "C:/Windows/Fonts/simhei.ttf", "serif");
-        registerFont(resolver, "C:/Windows/Fonts/simhei.ttf", "sans-serif");
+        registerFont(resolver, fontsDir + "/simhei.ttf", "SimHei");
+        registerFont(resolver, fontsDir + "/simhei.ttf", "serif");
+        registerFont(resolver, fontsDir + "/simhei.ttf", "sans-serif");
 
         // FangSong (仿宋) — simfang.ttf's internal family name
-        registerFont(resolver, "C:/Windows/Fonts/simfang.ttf", "FangSong");
+        registerFont(resolver, fontsDir + "/simfang.ttf", "FangSong");
 
         // KaiTi (楷体)
-        registerFont(resolver, "C:/Windows/Fonts/simkai.ttf", "KaiTi");
+        registerFont(resolver, fontsDir + "/simkai.ttf", "KaiTi");
 
         // SimSun (宋体) from TTC collection — broader character coverage
-        registerFont(resolver, "C:/Windows/Fonts/simsun.ttc,0", "SimSun");
-        registerFont(resolver, "C:/Windows/Fonts/simsun.ttc,0", "serif");
-        registerFont(resolver, "C:/Windows/Fonts/simsun.ttc,0", "sans-serif");
+        registerFont(resolver, fontsDir + "/simsun.ttc,0", "SimSun");
+        registerFont(resolver, fontsDir + "/simsun.ttc,0", "serif");
+        registerFont(resolver, fontsDir + "/simsun.ttc,0", "sans-serif");
 
         // Microsoft YaHei from TTC
-        registerFont(resolver, "C:/Windows/Fonts/msyh.ttc,0", "Microsoft YaHei");
+        registerFont(resolver, fontsDir + "/msyh.ttc,0", "Microsoft YaHei");
     }
 
     private void registerFont(ITextFontResolver resolver, String path, String family) {
@@ -669,10 +675,10 @@ public class PdfExtractionService {
     private PDType0Font loadChineseFont(PDDocument document) throws IOException {
         // Try standalone TTF fonts first (directly loadable), then TTC collections
         String[] ttfCandidates = {
-            "C:/Windows/Fonts/simfang.ttf",
-            "C:/Windows/Fonts/simhei.ttf",
-            "C:/Windows/Fonts/simkai.ttf",
-            "C:/Windows/Fonts/simsunb.ttf",
+            fontsDir + "/simfang.ttf",
+            fontsDir + "/simhei.ttf",
+            fontsDir + "/simkai.ttf",
+            fontsDir + "/simsunb.ttf",
         };
         for (String path : ttfCandidates) {
             File f = new File(path);
@@ -682,8 +688,8 @@ public class PdfExtractionService {
         }
         // Fallback: try TTC files with TrueTypeCollection
         String[] ttcCandidates = {
-            "C:/Windows/Fonts/msyh.ttc",
-            "C:/Windows/Fonts/simsun.ttc",
+            fontsDir + "/msyh.ttc",
+            fontsDir + "/simsun.ttc",
         };
         for (String path : ttcCandidates) {
             File f = new File(path);
@@ -720,9 +726,9 @@ public class PdfExtractionService {
                 protected void writePage() throws IOException {
                     if (!pageTexts.isEmpty()) {
                         String formatted = formatColumns(pageTexts);
-                        System.err.println("=== FORMATTED OUTPUT ===");
-                        System.err.println(formatted);
-                        System.err.println("=== END FORMATTED ===");
+                        if (log.isDebugEnabled()) {
+                            log.debug("PDF formatted output:\n{}", formatted);
+                        }
                         writeString(formatted);
                         pageTexts.clear();
                     }
@@ -787,131 +793,7 @@ public class PdfExtractionService {
         // Detect column boundaries from line-level X gaps
         List<Float> boundaries = new ArrayList<>();
         boundaries.add(-1f);
-        // Gap positions that appear on ≥2 lines are column boundaries
-        List<Float> columnGaps = new ArrayList<>();
-        {
-            float minGap = pageWidth * 0.08f;
-            Map<Float, Integer> gapVotes = new HashMap<>();
-
-            for (List<TextPosition> line : lines) {
-                if (line.size() < 2) continue;
-
-                line.sort((a, b) -> Float.compare(a.getX(), b.getX()));
-
-                for (int i = 1; i < line.size(); i++) {
-                    float gap = line.get(i).getX()
-                        - (line.get(i - 1).getX() + line.get(i - 1).getWidth());
-                    if (gap > minGap) {
-                        float gapCenter = (line.get(i - 1).getX() + line.get(i - 1).getWidth()
-                            + line.get(i).getX()) / 2;
-                        // Merge with existing gap position within 10pt tolerance
-                        boolean merged = false;
-                        for (Map.Entry<Float, Integer> entry : gapVotes.entrySet()) {
-                            if (Math.abs(entry.getKey() - gapCenter) <= 10) {
-                                entry.setValue(entry.getValue() + 1);
-                                merged = true;
-                                break;
-                            }
-                        }
-                        if (!merged) {
-                            gapVotes.put(gapCenter, 1);
-                        }
-                    }
-                }
-            }
-
-            for (Map.Entry<Float, Integer> entry : gapVotes.entrySet()) {
-                if (entry.getValue() >= 2) {
-                    columnGaps.add(entry.getKey());
-                }
-            }
-            columnGaps.sort(Float::compare);
-
-            // Validate each gap: a true column boundary separates long-form content
-            // blocks where left content extends past ~25% of page width. Right-aligned
-            // inline elements (dates, locations) have short left content (company names,
-            // titles) that ends well before 25% page width. For each gap, examine the
-            // lines that actually have an intentional gap > 8% page width, and measure
-            // where the left content ends.
-            List<Float> validatedGaps = new ArrayList<>();
-            for (float gap : columnGaps) {
-                float totalLeftEnd = 0;
-                int gapLines = 0;
-                for (List<TextPosition> line : lines) {
-                    if (line.size() < 2) continue;
-                    line.sort((a, b) -> Float.compare(a.getX(), b.getX()));
-                    for (int i = 1; i < line.size(); i++) {
-                        float g = line.get(i).getX()
-                            - (line.get(i - 1).getX() + line.get(i - 1).getWidth());
-                        if (g > minGap) {
-                            float gc = (line.get(i - 1).getX() + line.get(i - 1).getWidth()
-                                + line.get(i).getX()) / 2;
-                            if (Math.abs(gc - gap) <= 10) {
-                                float leftEnd = line.get(i - 1).getX() + line.get(i - 1).getWidth();
-                                totalLeftEnd += leftEnd;
-                                gapLines++;
-                                break;
-                            }
-                        }
-                    }
-                }
-                // If left content on gap lines ends before 25% page width, it's
-                // likely inline right-aligned content (e.g., dates next to short names)
-                if (gapLines > 0 && (totalLeftEnd / gapLines) > pageWidth * 0.25f) {
-                    validatedGaps.add(gap);
-                }
-            }
-            columnGaps = validatedGaps;
-        }
-
-        // Pass 2: if no column boundaries found, check for a right-edge sidebar
-        // content cluster where the gap from main content may be smaller than
-        // the 8% page width threshold (e.g., contact info sidebar in resumes).
-        if (columnGaps.isEmpty()) {
-            float sidebarThreshold = pageWidth * 0.72f; // ~440pt for A4
-            int sidebarLines = 0;
-            int pairedSidebarLines = 0;
-            float minSidebarX = pageWidth;
-            for (List<TextPosition> line : lines) {
-                boolean hasRightEdge = false;
-                boolean hasLeft = false;
-                for (TextPosition tp : line) {
-                    if (tp.getX() >= sidebarThreshold) {
-                        hasRightEdge = true;
-                        minSidebarX = Math.min(minSidebarX, tp.getX());
-                    } else {
-                        hasLeft = true;
-                    }
-                }
-                if (hasRightEdge) {
-                    sidebarLines++;
-                    if (hasLeft) pairedSidebarLines++;
-                }
-            }
-            int unpairedSidebar = sidebarLines - pairedSidebarLines;
-            // Require at least 3 sidebar lines, with at least 2 standalone (unpaired
-            // with left content). The 3pt Y tolerance can merge sidebar with nearby
-            // main text lines, so we use a simple count rather than majority ratio.
-            if (sidebarLines >= 3 && unpairedSidebar >= 2) {
-                // Place boundary at the midpoint between main content right edge and
-                // sidebar left edge, NOT at minSidebarX - offset. This ensures the
-                // boundary is safely between the two regions, not inside either one.
-                float maxLeftX = 0;
-                for (List<TextPosition> line : lines) {
-                    for (TextPosition tp : line) {
-                        float xc = tp.getX() + tp.getWidth() / 2;
-                        if (xc < minSidebarX) {
-                            maxLeftX = Math.max(maxLeftX, tp.getX() + tp.getWidth());
-                        }
-                    }
-                }
-                float b = (maxLeftX + minSidebarX) / 2f;
-                System.err.printf("SIDEBAR: minX=%.1f maxLeftX=%.1f boundary=%.1f lines=%d unpaired=%d%n",
-                    minSidebarX, maxLeftX, b, sidebarLines, unpairedSidebar);
-                columnGaps.add(b);
-            }
-        }
-
+        List<Float> columnGaps = detectColumnBoundaries(lines, pageWidth);
         boundaries.addAll(columnGaps);
         boundaries.add(Float.MAX_VALUE);
 
@@ -986,7 +868,7 @@ public class PdfExtractionService {
                     }
                     StringBuilder fullLine = new StringBuilder();
                     for (TextPosition tp : line) fullLine.append(tp.getUnicode());
-                    System.err.printf("LINE Y=%.0f -> col %d: '%s'%n", line.get(0).getY(), assignedCol, fullLine.toString().trim());
+                    log.debug("LINE Y={} -> col {}: '{}'", line.get(0).getY(), assignedCol, fullLine.toString().trim());
                     for (int c = 0; c < numCols; c++) {
                         colLines.get(c).add(new StringBuilder());
                     }
@@ -1037,6 +919,119 @@ public class PdfExtractionService {
         }
 
         return result.toString().trim();
+    }
+
+    /**
+     * Detect column boundaries from visual line X-coordinate gaps.
+     * Uses gap voting (gaps ≥8% page width across ≥2 lines) and validates
+     * that columns contain long-form content. Falls back to sidebar detection
+     * for right-edge content clusters.
+     */
+    private List<Float> detectColumnBoundaries(List<List<TextPosition>> lines, float pageWidth) {
+        float minGap = pageWidth * 0.08f;
+        List<Float> columnGaps = new ArrayList<>();
+
+        // Phase 1: Gap voting — collect X-gap positions from multi-fragment lines
+        Map<Float, Integer> gapVotes = new HashMap<>();
+        for (List<TextPosition> line : lines) {
+            if (line.size() < 2) continue;
+            line.sort((a, b) -> Float.compare(a.getX(), b.getX()));
+            for (int i = 1; i < line.size(); i++) {
+                float gap = line.get(i).getX()
+                    - (line.get(i - 1).getX() + line.get(i - 1).getWidth());
+                if (gap > minGap) {
+                    float gapCenter = (line.get(i - 1).getX() + line.get(i - 1).getWidth()
+                        + line.get(i).getX()) / 2;
+                    boolean merged = false;
+                    for (Map.Entry<Float, Integer> entry : gapVotes.entrySet()) {
+                        if (Math.abs(entry.getKey() - gapCenter) <= 10) {
+                            entry.setValue(entry.getValue() + 1);
+                            merged = true;
+                            break;
+                        }
+                    }
+                    if (!merged) {
+                        gapVotes.put(gapCenter, 1);
+                    }
+                }
+            }
+        }
+        for (Map.Entry<Float, Integer> entry : gapVotes.entrySet()) {
+            if (entry.getValue() >= 2) {
+                columnGaps.add(entry.getKey());
+            }
+        }
+        columnGaps.sort(Float::compare);
+
+        // Validate gaps: require left content to extend past 25% page width
+        List<Float> validatedGaps = new ArrayList<>();
+        for (float gap : columnGaps) {
+            float totalLeftEnd = 0;
+            int gapLines = 0;
+            for (List<TextPosition> line : lines) {
+                if (line.size() < 2) continue;
+                line.sort((a, b) -> Float.compare(a.getX(), b.getX()));
+                for (int i = 1; i < line.size(); i++) {
+                    float g = line.get(i).getX()
+                        - (line.get(i - 1).getX() + line.get(i - 1).getWidth());
+                    if (g > minGap) {
+                        float gc = (line.get(i - 1).getX() + line.get(i - 1).getWidth()
+                            + line.get(i).getX()) / 2;
+                        if (Math.abs(gc - gap) <= 10) {
+                            totalLeftEnd += line.get(i - 1).getX() + line.get(i - 1).getWidth();
+                            gapLines++;
+                            break;
+                        }
+                    }
+                }
+            }
+            if (gapLines > 0 && (totalLeftEnd / gapLines) > pageWidth * 0.25f) {
+                validatedGaps.add(gap);
+            }
+        }
+        columnGaps = validatedGaps;
+
+        // Phase 2: Sidebar detection for right-edge content clusters
+        if (columnGaps.isEmpty()) {
+            float sidebarThreshold = pageWidth * 0.72f;
+            int sidebarLines = 0;
+            int pairedSidebarLines = 0;
+            float minSidebarX = pageWidth;
+            for (List<TextPosition> line : lines) {
+                boolean hasRightEdge = false;
+                boolean hasLeft = false;
+                for (TextPosition tp : line) {
+                    if (tp.getX() >= sidebarThreshold) {
+                        hasRightEdge = true;
+                        minSidebarX = Math.min(minSidebarX, tp.getX());
+                    } else {
+                        hasLeft = true;
+                    }
+                }
+                if (hasRightEdge) {
+                    sidebarLines++;
+                    if (hasLeft) pairedSidebarLines++;
+                }
+            }
+            int unpairedSidebar = sidebarLines - pairedSidebarLines;
+            if (sidebarLines >= 3 && unpairedSidebar >= 2) {
+                float maxLeftX = 0;
+                for (List<TextPosition> line : lines) {
+                    for (TextPosition tp : line) {
+                        float xc = tp.getX() + tp.getWidth() / 2;
+                        if (xc < minSidebarX) {
+                            maxLeftX = Math.max(maxLeftX, tp.getX() + tp.getWidth());
+                        }
+                    }
+                }
+                float b = (maxLeftX + minSidebarX) / 2f;
+                log.debug("SIDEBAR: minX={} maxLeftX={} boundary={} lines={} unpaired={}",
+                    minSidebarX, maxLeftX, b, sidebarLines, unpairedSidebar);
+                columnGaps.add(b);
+            }
+        }
+
+        return columnGaps;
     }
 
     private static int columnIndex(float xCenter, List<Float> boundaries) {

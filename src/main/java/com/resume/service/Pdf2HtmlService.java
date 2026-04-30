@@ -3,6 +3,7 @@ package com.resume.service;
 import com.resume.exception.BusinessException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -20,9 +21,14 @@ public class Pdf2HtmlService {
     private static final Logger log = LoggerFactory.getLogger(Pdf2HtmlService.class);
 
     private static final String CONTAINER_NAME = "pdf2htmlex";
-    private static final String HOST_WORK_DIR = "E:/code/filesearch/pdf";
     private static final String CONTAINER_WORK_DIR = "/work";
     private static final long TIMEOUT_SECONDS = 30;
+
+    private final String hostWorkDir;
+
+    public Pdf2HtmlService(@Value("${pdf.work-dir:/tmp/resume-pdf}") String hostWorkDir) {
+        this.hostWorkDir = hostWorkDir;
+    }
 
     /**
      * Convert a PDF byte array to HTML using pdf2htmlEX running in a Docker container.
@@ -38,8 +44,8 @@ public class Pdf2HtmlService {
         String inputName = "input_" + jobId + ".pdf";
         String outputName = "output_" + jobId + ".html";
 
-        Path hostInput = Path.of(HOST_WORK_DIR, inputName);
-        Path hostOutput = Path.of(HOST_WORK_DIR, outputName);
+        Path hostInput = Path.of(hostWorkDir, inputName);
+        Path hostOutput = Path.of(hostWorkDir, outputName);
 
         try {
             // Ensure work directory exists
@@ -59,7 +65,7 @@ public class Pdf2HtmlService {
 
             // pdftohtml may append "-html.html" to the output filename
             Path actualOutput = hostOutput;
-            Path altOutput = Path.of(HOST_WORK_DIR, outputName.replace(".html", "") + "-html.html");
+            Path altOutput = Path.of(hostWorkDir, outputName.replace(".html", "") + "-html.html");
             if (!Files.exists(actualOutput) && Files.exists(altOutput)) {
                 actualOutput = altOutput;
             }
@@ -67,7 +73,7 @@ public class Pdf2HtmlService {
             String html = Files.readString(actualOutput, StandardCharsets.UTF_8);
 
             // Inline any remaining external references as a safety net
-            html = inlineExternalResources(html, Path.of(HOST_WORK_DIR));
+            html = inlineExternalResources(html, Path.of(hostWorkDir));
 
             log.debug("pdftohtml conversion successful, jobId={}, HTML size: {} bytes", jobId, html.length());
             return html;
@@ -77,9 +83,9 @@ public class Pdf2HtmlService {
             deleteFile(hostInput);
             deleteFile(hostOutput);
             // pdftohtml may generate an XML file alongside the HTML
-            deleteFile(Path.of(HOST_WORK_DIR, outputName.replace(".html", "") + "-html.xml"));
-            deleteFile(Path.of(HOST_WORK_DIR, outputName.replace(".html", "") + ".xml"));
-            deleteFile(Path.of(HOST_WORK_DIR, inputName + ".outline"));
+            deleteFile(Path.of(hostWorkDir, outputName.replace(".html", "") + "-html.xml"));
+            deleteFile(Path.of(hostWorkDir, outputName.replace(".html", "") + ".xml"));
+            deleteFile(Path.of(hostWorkDir, inputName + ".outline"));
         }
     }
 
@@ -130,12 +136,18 @@ public class Pdf2HtmlService {
     private String inlineReferencedFiles(String html, Pattern pattern, Path workDir, String wrapperTag) {
         Matcher m = pattern.matcher(html);
         StringBuilder sb = new StringBuilder(html.length() + 65536);
+        Path normalizedWorkDir = workDir.toAbsolutePath().normalize();
         while (m.find()) {
             String src = m.group(1);
             if (src.startsWith("http://") || src.startsWith("https://")) {
                 continue;
             }
-            Path file = workDir.resolve(src);
+            // Normalize the resolved path and verify it stays within workDir
+            Path file = workDir.resolve(src).toAbsolutePath().normalize();
+            if (!file.startsWith(normalizedWorkDir)) {
+                log.warn("Blocked path traversal attempt: {}", src);
+                continue;
+            }
             try {
                 String content = Files.readString(file, StandardCharsets.UTF_8);
                 m.appendReplacement(sb,

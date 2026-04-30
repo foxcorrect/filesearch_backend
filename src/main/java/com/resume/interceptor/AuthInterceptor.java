@@ -18,14 +18,14 @@ import java.nio.charset.StandardCharsets;
 @Component
 public class AuthInterceptor implements HandlerInterceptor {
 
-    private final String jwtSecret;
+    private final SecretKey secretKey;
     private final ObjectMapper objectMapper;
     private final TokenBlacklist tokenBlacklist;
 
     public AuthInterceptor(@Value("${jwt.secret}") String jwtSecret,
                            ObjectMapper objectMapper,
                            TokenBlacklist tokenBlacklist) {
-        this.jwtSecret = jwtSecret;
+        this.secretKey = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
         this.objectMapper = objectMapper;
         this.tokenBlacklist = tokenBlacklist;
     }
@@ -55,9 +55,8 @@ public class AuthInterceptor implements HandlerInterceptor {
         }
 
         try {
-            SecretKey key = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
             Claims claims = Jwts.parser()
-                    .verifyWith(key)
+                    .verifyWith(secretKey)
                     .build()
                     .parseSignedClaims(token)
                     .getPayload();
